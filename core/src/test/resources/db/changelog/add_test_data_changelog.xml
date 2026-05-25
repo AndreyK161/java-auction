@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="add_data_table_owners" author="a.kopeykin">
+        <insert tableName="owners">
+            <column name="guid" value="35b0bbee-b4bc-4702-9fc3-24924593653a"/>
+            <column name="email" value="example@example.ru"/>
+            <column name="username" value="Николай Николаев Николаевич"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="insert-test-lots" author="a.kopeykin">
+        <insert tableName="lots">
+            <column name="guid" value="c0ffee00-cafe-0000-babe-000000000001"/>
+            <column name="title" value="Тестовый лот"/>
+            <column name="description" value="Описание тестового лота"/>
+            <column name="start_price" valueNumeric="1000"/>
+            <column name="price_step" valueNumeric="500"/>
+            <column name="owner_guid" value="35b0bbee-b4bc-4702-9fc3-24924593653a"/>
+            <column name="deleted" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,8 @@
+databaseChangeLog:
+  - include:
+      file: changelog/init_test_db_changelog.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changelog/add_test_data_changelog.xml
+      relativeToChangelogFile: true

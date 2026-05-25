@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: java-academy-auction
+
+  config:
+    import: optional:file:../.env[.properties]
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog-test-master.yaml
+
+rabbitmq:
+  queue-name: bets-queue
+  routing-key: bets-routing-key
+  exchange: bets-exchange
+
+server:
+  port: 8080
+
+minio:
+  url: ${MINIO_URL}
+  access-key: ${MINIO_ACC_KEY}
+  secret-key: ${MINIO_SEC_KEY}
+  bucket:
+    name: ${MINIO_BUCKET_NAME}

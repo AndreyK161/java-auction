@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - include:
+      file: changelog/1-init_db_changelog.xml
+      relativeToChangelogFile: true
+  - include:
+      file: changelog/2-init_schema_keycloak.xml
+      relativeToChangelogFile: true
+  - include:
+      file: changelog/3-add_admin_user.xml
+      relativeToChangelogFile: true
+
+# TODO По необходимости остальные ченджлоги

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="add_admin_user" author="a.kopeykin">
+        <insert tableName="users">
+            <column name="guid" value="35b0bbee-b4bc-4702-9fc3-24924593653a"/>
+            <column name="email" value="admin@example.com"/>
+            <column name="username" value="adminUser"/>
+            <column name="role" value="ADMIN"/>
+            <column name="deleted" valueBoolean="false"/>
+            <column name="activated" valueBoolean="true"/>
+            <!-- Касаемо guid_keycloak, чтоб добавить admin'а, надо в самом keycloak'е добавить юзера с такими же данными
+                       А далее скопировать ID и вставить ниже. В Keycloak выставить username и email такими же-->
+            <column name="guid_keycloak" value="659e037a-fa4b-4539-8d0f-4cb02d55b378"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

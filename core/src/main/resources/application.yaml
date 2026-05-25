@@ -1,0 +1,88 @@
+spring:
+  application:
+    name: java-academy-auction
+
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: jdbc:postgresql://${HOST}:${POSTGRES_EXTERNAL_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driverClassName: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+#      TODO В будущем убрать show_sql: true
+    properties:
+      hibernate:
+        show_sql: true
+  liquibase:
+    enabled: ${LIQUIBASE_ENABLED}
+    change-log: classpath:/db/changelog-master.yaml
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 2MB
+      max-request-size: 2MB
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_EXTERNAL_PORT}
+    connection-timeout: 60000
+    username: ${RABBITMQ_DEFAULT_USER}
+    password: ${RABBITMQ_DEFAULT_PASS}
+
+  mail:
+    host: ${HOST}
+    port: ${SMTP_PORT}
+    username: ""
+    password: ""
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+    default-encoding: UTF-8
+    from: ${EMAIL_SENDER}
+
+keycloak:
+  url-authenticate: ${URL_AUTHENTICATE_KEYCLOAK}
+  server-url: ${KEYCLOAK_SERVER_URL}
+  realm: ${KEYCLOAK_REALM}
+  admin:
+    username: ${KEYCLOAK_ADMIN_USERNAME}
+    password: ${KEYCLOAK_ADMIN_PASSWORD}
+
+  client-id: admin-cli
+
+rabbitmq:
+  bid-process-queue-name: bid.processing.queue
+  bid-status-queue-name: bid.status.queue
+  routing-key: bid-routing-key
+  status-routing-key: bid-status-routing-key
+  exchange: bid-exchange
+
+server:
+  port: 8080
+
+minio:
+  url: ${MINIO_URL}
+  access-key: ${MINIO_ACC_KEY}
+  secret-key: ${MINIO_SEC_KEY}
+  bucket:
+    name: ${MINIO_BUCKET_NAME}
+
+app:
+  activate:
+    url: ${ACTIVATE_URL}
+  recovery:
+    url: ${RECOVERY_URL}

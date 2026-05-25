@@ -1,0 +1,2068 @@
+openapi: 3.0.1
+info:
+  title: Auction API
+  version: v1
+servers:
+  - url: http://localhost:8080
+    description: Local server
+
+tags:
+  - name: Lots
+    description: Управление лотами
+  - name: User Access
+    description: Доступ пользователя в систему
+  - name: Current User
+    description: Информация текущего пользователя
+  - name: Users
+    description: Пользователи
+  - name: Auctions
+    description: Аукционы
+  - name: Participants
+    description: Участники аукционов
+  - name: Common
+    description: Общие методы
+
+paths:
+  # Доступ в личный кабинет пользователя
+
+  /api/v1/auth/login/:
+    post:
+      summary: Аутентификация пользователя. Получение токена доступа и токена обновления [anonymous]
+      operationId: authentication
+      description: Токен доступа доступен в течении 10 минут. При получении 401 ответа с токеном доступа последний необходимо обновить через метод refresh. Refresh токен является одноразовым. Срок действия refresh токена 72 часа.
+      tags:
+        - User Access
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ login, password ]
+              properties:
+                login:
+                  $ref: '#/components/schemas/Email'
+                password:
+                  $ref: '#/components/schemas/UserPassword'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    $ref: '#/components/schemas/JwtToken'
+                  refreshToken:
+                    $ref: '#/components/schemas/JwtToken'
+        400:
+          $ref: '#/components/responses/400_BadRequest'
+        401:
+          $ref: '#/components/responses/401_Unauthorized'
+
+  /api/v1/auth/refresh-token/:
+    post:
+      summary: Обновление токена пользователя [participant, admin]
+      operationId: refreshToken
+      tags:
+        - User Access
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ ]
+              properties:
+                refreshToken:
+                  $ref: '#/components/schemas/JwtToken'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    $ref: '#/components/schemas/JwtToken'
+                  refreshToken:
+                    $ref: '#/components/schemas/JwtToken'
+        400:
+          $ref: '#/components/responses/400_BadRequest'
+        401:
+          $ref: '#/components/responses/401_Unauthorized'
+
+  /api/v1/auth/password-recovery/:
+    post:
+      summary: Восстановление пароля. В результате пользователю отправляется email со ссылкой на сброс пароля [anonymous]
+      operationId: authPasswordRecovery
+      tags:
+        - User Access
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ email ]
+              properties:
+                email:
+                  $ref: '#/components/schemas/Email'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        400:
+          $ref: '#/components/responses/400_BadRequest'
+        401:
+          $ref: '#/components/responses/401_Unauthorized'
+
+  /api/v1/auth/reset-password/:
+    post:
+      summary: Сброс пароля, по ссылке, пришедшей из письма [anonymous]
+      operationId: authResetPassword
+      tags:
+        - User Access
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ email , secret, newPassword ]
+              properties:
+                email:
+                  $ref: '#/components/schemas/Email'
+                secret:
+                  type: string
+                  example: 8743b52063cd84097a65d1633f5c74f5,
+                newPassword:
+                  type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /api/v1/auth/register/:
+    post:
+      summary: Регистрация пользователя. При отправке запроса, пользователю должна прийти одноразовая ссылка для активации [anonymous]
+      operationId: authentication
+      tags:
+        - User Access
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ email, fullName ]
+              properties:
+                email:
+                  $ref: '#/components/schemas/Email'
+                fullName:
+                  $ref: '#/components/schemas/PersonFullName'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        400:
+          $ref: '#/components/responses/400_BadRequest'
+        401:
+          $ref: '#/components/responses/401_Unauthorized'
+
+  /api/v1/auth/activate/:
+    post:
+      summary: Активация пользователя по данным ссылки из письма, полученного при вводе регистрационных данных [anonymous]
+      operationId: authentication
+      tags:
+        - User Access
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ email, hash ]
+              properties:
+                email:
+                  $ref: '#/components/schemas/Email'
+                hash:
+                  $ref: '#/components/schemas/Guid'
+                password:
+                  $ref: '#/components/schemas/UserPassword'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        400:
+          $ref: '#/components/responses/400_BadRequest'
+        401:
+          $ref: '#/components/responses/401_Unauthorized'
+
+  # Профиль текущего пользователя
+
+  /api/v1/auth/current-user/:
+    get:
+      summary: Получение текущего авторизованного пользователя [admin, participant]
+      operationId: getAuthenticatedUser
+      tags:
+        - Current User
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserProfile'
+        401:
+          $ref: '#/components/responses/401_Unauthorized'
+    put:
+      summary: Обновление данных профиля пользователя [admin, participant]
+      operationId: currentUser
+      tags:
+        - Current User
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullName:
+                  $ref: "#/components/schemas/PersonFullName"
+      responses:
+        200:
+          $ref: "#/components/responses/200_Success"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+
+  # Управление пользователями
+
+  /api/v1/users/:
+    get:
+      tags:
+        - Users
+      summary: Список пользователей [admin]
+      operationId: userList
+      parameters:
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/CountPerPage'
+        - $ref: '#/components/parameters/SortBy'
+        - in: query
+          name: name
+          description: Имя пользователя (поиск по подстроке)
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: role
+          required: false
+          description: Роль пользователя (администратор, участник)
+          schema:
+            $ref: "#/components/schemas/UserRole"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    description: Перечень пользователей приложения
+                    items:
+                      $ref: "#/components/schemas/UserProfile"
+                  page:
+                    $ref: "#/components/schemas/ListPageData"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+    post:
+      tags:
+        - Users
+      summary: Добавление пользователя [admin]
+      description: После отправки запроса пользователю уйдет письмо для установки пароля
+      operationId: addUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Данные пользователя
+              properties:
+                fullName:
+                  $ref: "#/components/schemas/PersonFullName"
+                email:
+                  $ref: "#/components/schemas/Email"
+                role:
+                  $ref: "#/components/schemas/UserRole"
+      responses:
+        201:
+          $ref: "#/components/responses/201_Created"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+
+  /api/v1/users/{guid}/:
+    parameters:
+      - $ref: "#/components/parameters/Guid"
+    get:
+      tags:
+        - Users
+      summary: Получение детальной информации по пользователю [admin]
+      operationId: getUser
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+    put:
+      tags:
+        - Users
+      summary: Обновление данных пользователя [admin]
+      operationId: updateUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullName:
+                  $ref: "#/components/schemas/PersonFullName"
+                role:
+                  $ref: "#/components/schemas/UserRole"
+      responses:
+        200:
+          $ref: "#/components/responses/200_Success"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+    delete:
+      tags:
+        - Users
+      summary: Удаление пользователя по идентификатору [admin]
+      operationId: userDelete
+      responses:
+        200:
+          $ref: "#/components/responses/200_Success"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+
+      # Проведение торгов
+
+  # Аукционы
+
+  /api/v1/auctions/:
+    get:
+      tags:
+        - Trades
+      summary: Список торгов [admin, participant, anonymous]
+      parameters:
+        - name: from
+          in: query
+          description: Период проведения от
+          required: false
+          schema:
+            $ref: '#/components/schemas/Date'
+        - name: to
+          in: query
+          description: Период проведения по
+          required: false
+          schema:
+            $ref: '#/components/schemas/Date'
+        - name: statuses
+          in: query
+          description: Перечень необходимых статусов
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - PUBLISHED
+                - ACTIVE
+                - ARCHIVE
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/CountPerPage'
+        - name: participants
+          in: query
+          description: Перечень участников аукционов
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Guid"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuctionListItem'
+                  page:
+                    $ref: '#/components/schemas/ListPageData'
+    post:
+      tags:
+        - Auctions
+      summary: Добавление аукциона [admin]
+      operationId: addAuction
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startDate:
+                  $ref: "#/components/schemas/Date"
+      responses:
+        201:
+          $ref: "#/components/responses/201_Created"
+        400:
+          $ref: "#/components/responses/400_BadRequest"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+
+  /api/v1/auctions/{guid}/:
+    parameters:
+      - $ref: '#/components/parameters/Guid'
+    get:
+      operationId: auctionDetail
+      summary: Детальная информация по аукциону [anonymous, participant, admin]
+      tags:
+        - Auctions
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionDetails"
+        404:
+          $ref: '#/components/responses/404_NotFound'
+    patch:
+      tags:
+        - Auctions
+      summary: Редактирование информации по аукциону [admin]
+      operationId: auctionUpdate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startDate:
+                  $ref: '#/components/schemas/Date'
+      responses:
+        200:
+          $ref: "#/components/responses/200_Success"
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+    delete:
+      tags:
+        - Auctions
+      summary: Удаление опубликованного аукциона [admin]
+      operationId: auctionDelete
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+
+  /api/v1/auctions/{guid}/{action}/:
+    parameters:
+      - $ref: '#/components/parameters/Guid'
+      - in: path
+        name: action
+        required: true
+        schema:
+          type: string
+          enum:
+            - start
+            - finish
+    post:
+      tags:
+        - Auctions
+      summary: Запуск|Останов торгов из перечня опубликованных|запущенных [admin]
+      operationId: auctionAction
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+
+  /api/v1/auctions/{guid}/lots/:
+    parameters:
+      - $ref: '#/components/parameters/Guid'
+    get:
+      tags:
+        - Auctions
+      summary: Перечень лотов выставленных на торги [anonymous, participant, admin]
+      parameters:
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/CountPerPage'
+        - $ref: '#/components/parameters/SortBy'
+        - in: query
+          name: sort
+          required: false
+          description: Поле сортировки
+          schema:
+            type: string
+            enum:
+              - number
+              - title
+              - minPrice
+        - in: query
+          name: status
+          required: false
+          description: Статус лота в торгах
+          schema:
+            $ref: "#/components/schemas/AuctionLotStatus"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuctionLotDetails'
+                  page:
+                    $ref: '#/components/schemas/ListPageData'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+    post:
+      tags:
+        - Auctions
+      operationId: addLotToAuction
+      summary: Регистрация лота на торгах [participant, admin]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lot:
+                  $ref: "#/components/schemas/Guid"
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        400:
+          # В случае, если торги архивные
+          $ref: '#/components/responses/400_BadRequest'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+    delete:
+      tags:
+        - Auctions
+      operationId: deleteLotFromAuction [participant, admin]
+      summary: Удаление лота с торгов
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lot:
+                  $ref: "#/components/schemas/Guid"
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        400:
+          # В случае, если торги архивные
+          $ref: '#/components/responses/400_BadRequest'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+
+  /api/v1/auctions/{guid}/participants/:
+    parameters:
+      - $ref: '#/components/parameters/Guid'
+    post:
+      tags:
+        - Auctions
+      summary: Подача заявки на торги, дополнительно можно выставить лоты [participant]
+      operationId: participateInAuction
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                participant:
+                  $ref: "#/components/schemas/Guid"
+                lots:
+                  type: object
+                  required: []
+                  properties:
+                    lots:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/Guid"
+      responses:
+        200:
+          $ref: "#/components/responses/201_Created"
+        400:
+          # В случае, если торги архивные, либо другая ошибка
+          $ref: '#/components/responses/400_BadRequest'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+    get:
+      tags:
+        - Auctions
+      summary: Перечень участников, которые участвуют в конкретных торгах [admin, participant, anonymous]
+      parameters:
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/CountPerPage'
+        - $ref: '#/components/parameters/SortBy'
+        - in: query
+          name: sort
+          required: false
+          description: Поле сортировки
+          schema:
+            type: string
+            enum:
+              - number
+              - fullName
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ParticipantListItem'
+                  page:
+                    $ref: '#/components/schemas/ListPageData'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+
+  /api/v1/auctions/{guid}/participants/{participantGuid}/:
+    parameters:
+      - $ref: "#/components/parameters/Guid"
+      - in: path
+        required: true
+        name: participantGuid
+        description: Guid участника торгов
+        schema:
+          $ref: "#/components/schemas/Guid"
+    get:
+      tags:
+        - Auctions
+      summary: Детальная информация о участнике аукциона [admin]
+      operationId: auctionParticipantDetail
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionParticipant"
+        404:
+          $ref: "#/components/responses/404_NotFound"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+    delete:
+      tags:
+        - Auctions
+      summary: Удаление участника с торгов, при этом его номер остается в свободном доступе [admin, participant]
+      operationId: participateDeleteFromAuction
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        400:
+          # В случае, если торги архивные
+          $ref: '#/components/responses/400_BadRequest'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+
+  /api/v1/auctions/{guid}/participants/participate-application/:
+    parameters:
+      - $ref: "#/components/parameters/Guid"
+    get:
+      tags:
+        - Auctions
+      summary: Перечень заявок на участие по аукциону [participant, admin]
+      operationId: auctionParticipateApplicationList
+      parameters:
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/CountPerPage'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionParticipateApplicationList"
+        401:
+          $ref: '#/components/responses/401_Unauthorized'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+    post:
+      tags:
+        - Auctions
+      summary: Подача заявки участия на аукцион [participant]
+      operationId: participantApplicationForAuction
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        400:
+          $ref: '#/components/responses/400_BadRequest'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+
+  /api/v1/auctions/{guid}/participants/participate-application/{action}/:
+    parameters:
+      - $ref: "#/components/parameters/Guid"
+      - name: action
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+            - accept
+            - decline
+    post:
+      tags:
+        - Auctions
+      summary: Действие над заявкой участия в аукционе [admin]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Перечень заявок
+              items:
+                $ref: "#/components/schemas/Guid"
+      responses:
+        200:
+          $ref: "#/components/responses/200_Success"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Unauthorized"
+
+  /api/v1/auctions/{guid}/lots/{lotGuid}/for-sale/:
+    parameters:
+      - $ref: '#/components/parameters/Guid'
+      - in: path
+        name: lotGuid
+        required: true
+        schema:
+          $ref: '#/components/schemas/Guid'
+    post:
+      tags:
+        - Auctions
+      summary: Выставить лот на продажу активного аукциона [admin]
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+
+  /api/v1/auctions/{guid}/lots/{lotGuid}/:
+    parameters:
+      - $ref: '#/components/parameters/Guid'
+      - in: path
+        description: Глобальный идентификатор лота
+        name: lotGuid
+        required: true
+        schema:
+          $ref: '#/components/schemas/Guid'
+    put:
+      tags:
+        - Auctions
+      operationId: addLotToAuction
+      summary: Регистрация лота на торгах [admin]
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        400:
+          # В случае, если торги архивные
+          $ref: '#/components/responses/400_BadRequest'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+    delete:
+      tags:
+        - Auctions
+      operationId: deleteLotFromAuction
+      summary: Удаление лота с торгов [admin]
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        400:
+          # В случае, если торги архивные
+          $ref: '#/components/responses/400_BadRequest'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+
+  /api/v1/auctions/{auctionId}/lots/{lotId}/bids/:
+    parameters:
+      - name: auctionId
+        description: Идентификатор аукциона
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/Guid"
+      - name: lotId
+        description: Идентификатор лота
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/Guid"
+    post:
+      tags:
+        - Auctions
+      summary: Добавление ставки на лот [participant]
+      operationId: placeBid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LotBid"
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        400:
+          $ref: '#/components/responses/400_BadRequest'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+    get:
+      tags:
+        - Auctions
+      summary: Список ставок по лоту [anonymous, participant, admin]
+      operationId: getLotBids
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trade:
+                    type: object
+                    description: Информация, которая относится к текущим торгам по лоту
+                    properties:
+                      startAt:
+                        $ref: "#/components/schemas/DateTime"
+                      endAt:
+                        $ref: "#/components/schemas/DateTime"
+                      bidCount:
+                        type: integer
+                        description: Количество ставок
+                        example: 8
+                      leader:
+                        $ref: "#/components/schemas/ParticipantDetails"
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LotBid"
+        400:
+          $ref: '#/components/responses/400_BadRequest'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+
+  # Перечень заявок участников по всем аукционам
+
+  /api/v1/auctions/participants/participate-application/:
+    get:
+      tags:
+        - Auctions
+      operationId: auctionParticipateApplicationFullList
+      summary: Перечень заявок на участие в аукционах [admin]
+      description: Для участника отображаются только собственные заявки
+      parameters:
+        - name: startDateFrom
+          required: false
+          in: query
+          schema:
+            $ref: "#/components/schemas/Date"
+        - name: startDateTo
+          required: false
+          in: query
+          schema:
+            $ref: "#/components/schemas/Date"
+        - name: requestType
+          required: false
+          in: query
+          schema:
+            $ref: "#/components/schemas/AuctionParticipateRequestType"
+        - name: requestStatus
+          required: false
+          in: query
+          schema:
+            $ref: "#/components/schemas/AuctionParticipateRequestStatus"
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/CountPerPage'
+        - in: query
+          required: false
+          name: participants
+          description: Перечень участников, авторов заявок
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Guid"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionParticipateApplicationList"
+        401:
+          $ref: '#/components/responses/401_Unauthorized'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+
+  # Работа с реестром лотов
+
+  /api/v1/lots/:
+    get:
+      tags:
+        - Lots
+      summary: Получение списка лотов. Для участника - получение собственного перечня лотов [admin, participant]
+      operationId: listLots
+      parameters:
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/CountPerPage'
+        - $ref: '#/components/parameters/SortBy'
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum:
+              - name
+        - name: priceFrom
+          in: query
+          required: false
+          description: Фильтр по диапазону цен. Начало диапазона
+          schema:
+            type: integer
+            format: bigDecimal
+        - name: priceTo
+          in: query
+          description: Фильтр по диапазону цен. Конец диапазона
+          required: false
+          schema:
+            type: integer
+            format: bigDecimal
+        - name: name
+          in: query
+          required: false
+          description: Фильтр по имени лота. Поиск по подстроке
+          schema:
+            type: string
+        - name: showDeleted
+          in: query
+          required: false
+          description: Показывать удаленные лоты
+          schema:
+            $ref: "#/components/schemas/BoolFlag"
+        - in: query
+          name: owners
+          required: false
+          description: Перечень участников, владельцев лотов
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Guid"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LotList"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+    post:
+      tags:
+        - Lots
+      summary: Создание нового лота [admin, participant]
+      operationId: createLot
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLotRq'
+        required: true
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LotDetails'
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+
+  /api/v1/lots/{guid}/:
+    parameters:
+      - $ref: '#/components/parameters/Guid'
+    get:
+      tags:
+        - Lots
+      summary: Получение лота по идентификатору [anonymous, admin, participant]
+      operationId: getLotById
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LotDetails"
+        404:
+          $ref: '#/components/responses/404_NotFound'
+        403:
+          $ref: "#/components/responses/404_NotFound"
+    put:
+      tags:
+        - Lots
+      summary: Обновление лота
+      operationId: updateLot
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLotRq"
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LotDetails"
+        404:
+          $ref: '#/components/responses/404_NotFound'
+    delete:
+      tags:
+        - Lots
+      summary: Удаление лота (без фактического удаления из бд) [admin, participant]
+      operationId: deleteLot
+      responses:
+        200:
+          $ref: '#/components/responses/200_Success'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+
+  # Личный кабинет
+
+  /api/v1/participant/{guid}/purchases:
+    parameters:
+      - $ref: "#/components/parameters/Guid"
+    get:
+      tags:
+        - Participants
+      summary: Список выигранных лотов участника [admin, participant]
+      operationId: participantPurchases
+      parameters:
+        - $ref: '#/components/parameters/CountPerPage'
+        - $ref: '#/components/parameters/PageNumber'
+        - in: query
+          name: participants
+          required: false
+          description: Перечень участников, которыми были куплены лоты
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Guid"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BoughtLotListItem"
+                  page:
+                    $ref: '#/components/schemas/ListPageData'
+
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+
+  /api/v1/participants/{guid}/account/:
+    parameters:
+      - $ref: '#/components/parameters/Guid'
+    post:
+      tags:
+        - Participants
+      summary: Пополнение личного счета участника [participant]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                  example: 500
+                  description: Сумма пополнения
+                comment:
+                  type: string
+                  example: Перевод по номеру телефона
+                  description: Комментарий пополнения
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantAccount'
+        400:
+          $ref: '#/components/responses/400_BadRequest'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+    get:
+      tags:
+        - Participants
+      summary: Получение детальной информации по счету участника [participant, admin]
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantAccount'
+        401:
+          $ref: '#/components/responses/401_Unauthorized'
+        403:
+          $ref: '#/components/responses/403_Forbidden'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+    put:
+      tags:
+        - Participants
+      summary: Пополнить баланс [participant]
+      operationId: balanceDeposit
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  $ref: "#/components/schemas/RubMoney"
+                card:
+                  $ref: "#/components/schemas/CreditCard"
+      responses:
+        200:
+          $ref: "#/components/responses/200_Success"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+
+  /api/v1/participants/{guid}/account/withdraw/:
+    parameters:
+      - $ref: "#/components/parameters/Guid"
+    post:
+      tags:
+        - Participants
+      summary: Вывод средств на карту [participant]
+      operationId: balanceWithdraw
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  $ref: "#/components/schemas/RubMoney"
+                card:
+                  $ref: "#/components/schemas/CreditCardNumber"
+      responses:
+        200:
+          $ref: "#/components/responses/200_Success"
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+
+  /api/v1/participants/{guid}/account/transactions/:
+    parameters:
+      - $ref: "#/components/parameters/Guid"
+    get:
+      tags:
+        - Participants
+      summary: Перечень транзакций личного счета участника [participant]
+      operationId: participantAccountTransactions
+      parameters:
+        - $ref: "#/components/parameters/PageNumber"
+        - $ref: "#/components/parameters/CountPerPage"
+        - name: dateFrom
+          in: query
+          required: false
+          description: Дата транзакции с
+          schema:
+            $ref: "#/components/schemas/Date"
+        - name: dateTo
+          in: query
+          required: false
+          description: Дата транзакции по
+          schema:
+            $ref: "#/components/schemas/Date"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AccountTransactionListItem"
+                  page:
+                    $ref: '#/components/schemas/ListPageData'
+        401:
+          $ref: "#/components/responses/401_Unauthorized"
+        403:
+          $ref: "#/components/responses/403_Forbidden"
+
+  /api/v1/auctions/{guid}/lots/{number}/bid/:
+    parameters:
+      - $ref: '#/components/parameters/Guid'
+      - in: path
+        name: number
+        required: true
+        schema:
+          type: integer
+          description: Номер лота в торгах
+          example: 99
+    post:
+      tags:
+        - Participants
+      summary: Осуществление ставки на лот в торгах [participant]
+      operationId: placeBid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LotBid"
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted]
+                properties:
+                  accepted:
+                    type: boolean
+                  comment:
+                    type: string
+                    example: Более высокая ставка была сделана ранее
+        400:
+          $ref: '#/components/responses/400_BadRequest'
+        404:
+          $ref: '#/components/responses/404_NotFound'
+
+  # Общее
+  /api/v1/file/:
+    post:
+      tags:
+        - Common
+      summary: Загрузка файлов [participant, admin]
+      operationId: fileUpload
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageRef'
+        401:
+          $ref: '#/components/responses/401_Unauthorized'
+
+components:
+  parameters:
+    Guid:
+      in: path
+      description: Глобальный идентификатор сущности
+      name: guid
+      required: true
+      schema:
+        $ref: '#/components/schemas/Guid'
+    PageNumber:
+      in: query
+      description: Номер страницы для отображения списка
+      name: page
+      schema:
+        type: integer
+        example: 1
+        default: 1
+    CountPerPage:
+      in: query
+      name: count
+      description: Количество элементов на странице
+      schema:
+        type: integer
+        example: 30
+        default: 30
+    SortBy:
+      in: query
+      name: by
+      description: Направление сортировки
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        default: asc
+  schemas:
+    # Общие по спецификации
+    BoolFlag:
+      type: string
+      enum:
+        - Y
+        - N
+    DateTime:
+      type: string
+      format: 'd.m.Y H:i:s'
+      example: '17.09.2024 17:17:56'
+    Date:
+      type: string
+      format: 'd.m.Y'
+      example: '17.09.2024'
+    ValueChange:
+      type: object
+      description: Изменение значения
+      required: [to]
+      properties:
+        from:
+          type: string
+          example: 1000.00
+        to:
+          type: string
+          example: 2000.00
+    Guid:
+      description: Уникальный глобальный строковый идентификатор
+      type: string
+      example: 35b0bbee-b4bc-4702-9fc3-24924593653a
+    GuidRef:
+      type: object
+      properties:
+        guid:
+          $ref: '#/components/schemas/Guid'
+    Number:
+      type: integer
+      description: Номер, начиная с 1
+      example: 45
+    JwtToken:
+      type: string
+      example: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3MjcxNjcwNDAsImV4cCI6MTc1ODcwMzA0MCwiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsIkdpdmVuTmFtZSI6IkpvaG5ueSIsIlN1cm5hbWUiOiJSb2NrZXQiLCJFbWFpbCI6Impyb2NrZXRAZXhhbXBsZS5jb20iLCJSb2xlIjpbIk1hbmFnZXIiLCJQcm9qZWN0IEFkbWluaXN0cmF0b3IiXX0.lxI8EOANVo2gBqbm5vvYkRoUXnP9bZd1kPS2vgwOAOM
+    UserPassword:
+      type: string
+      example: 53d8~4;3Iqi5
+      description: Допускаются латинские буквы, цифры, спецсимволы - !”#$%^&*()-+=?/\. Значение должно содержать хотя бы одну латинскую букву, хотя бы одну цифру и хотя бы один из разрешенных спецсимволов
+      minLength: 8
+      maxLength: 50
+    ListPageData:
+      description: Данные страницы вывода списка
+      type: object
+      properties:
+        number:
+          type: integer
+          description: Номер страницы
+          example: 1
+        perPage:
+          type: integer
+          description: Количество элементов на странице
+          example: 30
+        pageCount:
+          type: integer
+          description: Количество страниц
+          example: 10
+    Email:
+      type: string
+      description: Электронная почта
+      example: somebody@example.com
+    RubMoney:
+      type: number
+      description: Сумма в российских рублях
+      example: 5000.00
+    CreditCardNumber:
+      type: string
+      format: "XXXX XXXX XXXX XXXX"
+      example: "0233 3523 2534 3566"
+    CreditCard:
+      type: object
+      description: Данные банковской карты
+      properties:
+        number:
+          $ref: "#/components/schemas/CreditCardNumber"
+        expire:
+          $ref: "#/components/schemas/Date"
+        cvv:
+          type: string
+          format: "111"
+          example: "974"
+    ImageRef:
+      type: object
+      properties:
+        guid:
+          $ref: '#/components/schemas/Guid'
+        mimetype:
+          type: string
+        path:
+          type: string
+          example: /images/35b0bbee-b4bc-4702-9fc3-24924593653a
+    PersonFullName:
+      type: string
+      description: ФИО участника
+      example: Константинопольский Константин Петрович
+    UserRole:
+      type: string
+      enum:
+        - ADMIN
+        - PARTICIPANT
+    UserProfile:
+      description: Детальная информация профиля пользователя
+      type: object
+      required:
+        - role
+        - email
+        -
+      properties:
+        guid:
+          $ref: "#/components/schemas/Guid"
+        email:
+          $ref: "#/components/schemas/Email"
+        fullName:
+          $ref: "#/components/schemas/PersonFullName"
+        role:
+          $ref: "#/components/schemas/UserRole"
+        participant:
+          $ref: "#/components/schemas/ParticipantDetails"
+    # Предметная область
+    CreateLotRq:
+      type: object
+      required:
+        - title
+        - startPrice
+        - description
+        - photo
+        - priceStep
+      properties:
+        title:
+          type: string
+          description: Наименование лота
+          example: Пуфик
+        description:
+          type: string
+          description: Описание лота
+          example: Очень мягкий
+        photo:
+          type: array
+          description: Фото лота
+          items:
+            $ref: '#/components/schemas/GuidRef'
+        startPrice:
+          $ref: "#/components/schemas/RubMoney"
+        priceStep:
+          $ref: "#/components/schemas/RubMoney"
+        owner:
+          $ref: '#/components/schemas/GuidRef'
+      description: Информация для создания лота, при отсутствии participant - владельцем определяется текущий пользователь
+    AuctionLotStatus:
+      type: string
+      description: Статус лота относительно торгов
+      enum:
+        - NEW
+        - AUCTION_REQUEST
+        - WAITING_FOR_TRADING
+        - ON_TRADE
+        - WITHDRAW_FROM_AUCTION
+        - SOLD
+    LotAction:
+      type: string
+      description: возможные действия над лотом аукциона
+      enum:
+        - DELETE
+    AuctionParticipantAction:
+      type: string
+      description: действие над участником конкретного аукциона
+      enum:
+        - DELETE
+    LotDetails:
+      type: object
+      properties:
+        guid:
+          $ref: '#/components/schemas/Guid'
+        title:
+          type: string
+          description: Наименование лота
+          example: Пуфик
+        description:
+          type: string
+          description: Описание лота
+          example: Очень мягкий
+        startPrice:
+          $ref: "#/components/schemas/RubMoney"
+        priceStep:
+          $ref: "#/components/schemas/RubMoney"
+        photo:
+          type: array
+          description: Фото лота
+          items:
+            $ref: '#/components/schemas/LotPhotoDto'
+        currentAuction:
+          $ref: "#/components/schemas/AuctionDetails"
+        tradeStatus:
+          $ref: "#/components/schemas/AuctionLotStatus"
+        owner:
+          $ref: '#/components/schemas/ParticipantDetails'
+        deleted:
+          type: boolean
+          description: Признак удаления
+          example: false
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/LotChangeHistoryItem"
+      description: Детальная информация лота
+    LotList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/LotListItem"
+        page:
+          $ref: '#/components/schemas/ListPageData'
+      description: DTO для списка лотов
+    TradingLotListItem:
+      type: object
+      description: Элемент списка торгующегося в данный момент лота
+      properties:
+        guid:
+          $ref: '#/components/schemas/Guid'
+        title:
+          type: string
+          description: Наименование лота
+          example: Пуфик
+        startPrice:
+          type: number
+          description: Начальная цена лота
+          example: 2500.00
+        photo:
+          type: array
+          description: Фото лота
+          items:
+            $ref: '#/components/schemas/LotPhotoDto'
+        lastBid:
+          $ref: "#/components/schemas/LotBid"
+        bidCount:
+          type: integer
+          description: Количество ставок
+          example: 10
+    BoughtLotListItem:
+      type: object
+      properties:
+        guid:
+          $ref: '#/components/schemas/Guid'
+        title:
+          type: string
+          description: Наименование лота
+          example: Пуфик
+        startPrice:
+          type: number
+          description: Начальная цена лота
+          example: 2500.00
+        photo:
+          type: array
+          description: Фото лота
+          items:
+            $ref: '#/components/schemas/LotPhotoDto'
+        purchaseInfo:
+          type: object
+          description: Информация о покупке
+          properties:
+            date:
+              $ref: "#/components/schemas/DateTime"
+            participant:
+              $ref: "#/components/schemas/ParticipantDetails"
+            cost:
+              $ref: "#/components/schemas/RubMoney"
+    LotListItem:
+      type: object
+      description: Лот в качестве элемента списка. Для большинства случаев
+      properties:
+        guid:
+          $ref: '#/components/schemas/Guid'
+        title:
+          type: string
+          description: Наименование лота
+          example: Пуфик
+        startPrice:
+          type: number
+          description: Начальная цена лота
+          example: 2500.00
+        createdAt:
+          $ref: "#/components/schemas/DateTime"
+        lastAuction:
+          $ref: "#/components/schemas/GuidRef"
+        photo:
+          type: array
+          description: Фото лота
+          items:
+            $ref: '#/components/schemas/LotPhotoDto'
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/LotAction"
+    LotChangeHistoryItem:
+      type: object
+      description: Запись в истории движения лота
+      properties:
+        createAt:
+          $ref: "#/components/schemas/DateTime"
+        status:
+          $ref: "#/components/schemas/ValueChange"
+        owner:
+          $ref: "#/components/schemas/ValueChange"
+        startPrice:
+          $ref: "#/components/schemas/ValueChange"
+        totalPrice:
+          $ref: "#/components/schemas/ValueChange"
+    UpdateLotRq:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Наименование лота
+          example: Пуфик
+        description:
+          type: string
+          description: Описание лота
+          example: Очень мягкий
+        startPrice:
+          type: integer
+          description: Начальная цена лота
+          example: 3000
+        photo:
+          type: array
+          description: Фото лота
+          items:
+            $ref: '#/components/schemas/GuidRef'
+      description: DTO для обновления лота
+    LotPhotoDto:
+      type: object
+      properties:
+        guid:
+          $ref: '#/components/schemas/Guid'
+        url:
+          type: string
+          description: Ссылка на фото лота в хранилище
+    AuctionStatus:
+      type: object
+      description: Статус торгов аукциона
+      properties:
+        code:
+          type: string
+          enum:
+            - PUBLISHED
+            - ACTIVE
+            - ARCHIVE
+        name:
+          type: string
+          enum:
+            - Опубликован
+            - Активен
+            - Архивный
+    AuctionDetails:
+      type: object
+      description: Детальная информация по торгам аукциона
+      properties:
+        id:
+          $ref: "#/components/schemas/Guid"
+        number:
+          $ref: "#/components/schemas/Number"
+        startDate:
+          $ref: '#/components/schemas/DateTime'
+        status:
+          $ref: '#/components/schemas/AuctionStatus'
+        tradingLots:
+          type: array
+          items:
+            $ref: '#/components/schemas/TradingLotListItem'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipantListItem'
+    AuctionPreviewInfo:
+      type: object
+      description: Краткая информация аукциона для идентификации отображения
+      properties:
+        id:
+          $ref: "#/components/schemas/Guid"
+        startDate:
+          $ref: '#/components/schemas/DateTime'
+        status:
+          $ref: "#/components/schemas/AuctionStatus"
+        number:
+          $ref : "#/components/schemas/Number"
+    AuctionListItem:
+      type: object
+      description: Пункт списка отражения торгов аукциона
+      properties:
+        id:
+          $ref: "#/components/schemas/Guid"
+        number:
+          $ref: "#/components/schemas/Number"
+        startDate:
+          $ref: '#/components/schemas/DateTime'
+        status:
+          $ref: '#/components/schemas/AuctionStatus'
+        lotsCount:
+          type: integer
+          description: Количество лотов в торгах
+          example: 90
+        participantCount:
+          type: integer
+          description: Количество участников торгов
+          example: 450
+        budget:
+          type: number
+          description: Сумма начальных стоимостей лотов
+          example: 100500.33
+        participation:
+          type: boolean
+          description: Признак участия текущего пользователя в аукционе
+          example: true
+        actions:
+          type: array
+          description: Перечень доступных действий по аукциону в данный момент для пользователя
+          items:
+            type: string
+            enum:
+              - DELETE
+    AuctionParticipateApplicationAction:
+      type: string
+      enum:
+        - ACCEPT
+        - DECLINE
+    AuctionParticipateApplicationListItem:
+      type: object
+      properties:
+        createdAt:
+          $ref: "#/components/schemas/DateTime"
+        participant:
+          $ref: "#/components/schemas/ParticipantDetails"
+        auction:
+          $ref: "#/components/schemas/AuctionPreviewInfo"
+        lots:
+          type: array
+          items:
+            $ref: "#/components/schemas/GuidRef"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuctionParticipateApplicationAction"
+    AuctionParticipateApplicationList:
+      type: object
+      description: Список заявок на участие в аукционе
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuctionParticipateApplicationListItem"
+        page:
+          $ref: '#/components/schemas/ListPageData'
+    AuctionParticipant:
+      type: object
+      description: Участник конкретных торгов
+      properties:
+        number:
+          type: integer
+          description: Номер, начинается с 1
+          example: 1
+        participant:
+          $ref: "#/components/schemas/ParticipantDetails"
+        forSaleLots:
+          type: array
+          items:
+            $ref: "#/components/schemas/LotListItem"
+    AuctionParticipateRequestStatus:
+      type: string
+      description: Статус заявки на участие в аукционе
+      enum:
+        - NEW
+        - ACCEPTED
+        - DECLINED
+    AuctionParticipateRequestType:
+      type: string
+      description: Тип заявки (Участие, Выставление лота + Участие)
+      enum:
+        - PARTICIPATE
+        - PARTICIPATE_SELLER
+    AuctionLotDetails:
+      description: Информация о лоте, торгующемся на торгах
+      type: object
+      required: [bids, lot]
+      properties:
+        number:
+          type: integer
+          example: 99
+          description: Номер лота в аукционе
+        status:
+          $ref: '#/components/schemas/AuctionLotStatus'
+        lot:
+          $ref: '#/components/schemas/LotDetails'
+        bids:
+          type: array
+          items:
+            $ref: '#/components/schemas/LotBid'
+        lastBid:
+          $ref: "#/components/schemas/LotBid"
+        winner:
+          $ref: '#/components/schemas/ParticipantDetails'
+        totalAmount:
+          type: number
+          description: Итоговая сумма продажи
+          example: 1992.33
+        actions:
+          description: Перечень действий над лотом аукциона
+          type: array
+          items:
+            type: string
+            enum:
+              - DELETE_FROM_AUCTION
+              - FOR_SALE
+    ParticipantAccount:
+      type: object
+      description: Личный счет участника
+      properties:
+        participant:
+          $ref: '#/components/schemas/Guid'
+        amount:
+          type: number
+          description: Сумма на счете
+          example: 1001.19
+        transactions:
+          type: array
+          items:
+            type: object
+            properties:
+              at:
+                $ref: '#/components/schemas/DateTime'
+              amount:
+                type: number
+                example: 100
+              comment:
+                type: string
+    LotBid:
+      type: object
+      required: [amount, participantNumber]
+      description: Ставка на лот в торгах
+      properties:
+        amount:
+          type: integer
+          description: Сумма ставки
+          example: 3000
+        participantNumber:
+          type: integer
+          description: Номер участника в торгах
+          example: 77
+        participant:
+          $ref: "#/components/schemas/ParticipantDetails"
+        dateTime:
+          $ref: '#/components/schemas/DateTime'
+    ParticipantDetails:
+      type: object
+      properties:
+        guid:
+          $ref: '#/components/schemas/Guid'
+        email:
+          $ref: '#/components/schemas/Email'
+        fullName:
+          $ref: "#/components/schemas/PersonFullName"
+        balance:
+          $ref: "#/components/schemas/RubMoney"
+    ParticipantListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Идентификатор участника торгов
+          example: 1
+        email:
+          $ref: '#/components/schemas/Email'
+        fullName:
+          $ref: "#/components/schemas/PersonFullName"
+        forSaleLots:
+          type: array
+          description: Продаваемые лоты
+          items:
+            $ref: "#/components/schemas/LotListItem"
+        purchaseLots:
+          type: array
+          description: Приобретенные лоты
+          items:
+            $ref: "#/components/schemas/LotListItem"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuctionParticipantAction"
+      description: DTO для списка участников
+    AccountTransactionListItem:
+      description: Транзакция личного счета участника
+      type: object
+      properties:
+        datetime:
+          $ref: "#/components/schemas/DateTime"
+        amount:
+          $ref: "#/components/schemas/RubMoney"
+        type:
+          type: string
+          enum:
+            - DEPOSIT
+            - WITHDRAW
+        comment:
+          type: string
+          example: Пополнение баланса
+    ErrorRs:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Сообщение об ошибке
+          example: Не корректная цена
+        data:
+          type: object
+          description: Дополнительные данные
+      description: DTO ответа API в случае возникновения ошибки
+  responses:
+    200_Success:
+      description: OK
+    201_Created:
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/GuidRef"
+    202_Accepted:
+      description: Accepted
+    500_ServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorRs"
+    400_BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorRs"
+    404_NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorRs"
+    401_Unauthorized:
+      description: Unauthorized
+    403_Forbidden:
+      description: Forbidden
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: [ ]

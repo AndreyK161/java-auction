@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.3</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+    <groupId>ws.academy</groupId>
+    <artifactId>java-academy-auction</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>api</module>
+        <module>core</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+
+        <auction.api.version>0.0.1-SNAPSHOT</auction.api.version>
+        <auction.core.version>0.0.1-SNAPSHOT</auction.core.version>
+        <compiler.plugin.version>3.5.1</compiler.plugin.version>
+        <compiler.plugin.version>3.5.1</compiler.plugin.version>
+        <mapstruct.version>1.4.2.Final</mapstruct.version>
+        <springdoc.openapi.ui.version>2.5.0</springdoc.openapi.ui.version>
+        <minio.version>8.5.17</minio.version>
+        <keycloak.version>21.1.1</keycloak.version>
+        <apache.commons-lang3.version>3.17.0</apache.commons-lang3.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.openapi.ui.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ws.academy</groupId>
+                <artifactId>auction-api</artifactId>
+                <version>${auction.api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-admin-client</artifactId>
+                <version>${keycloak.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${apache.commons-lang3.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.2.1</version>
+                <configuration>
+                    <violationSeverity>error</violationSeverity>
+                    <failsOnError>true</failsOnError>
+                    <consoleOutput>true</consoleOutput>
+                    <excludes>**/test/**/*,**/target/**/*</excludes>
+                    <suppressionsLocation>/codestyle/suppressions.xml</suppressionsLocation>
+                    <configLocation>/codestyle/checkstyle.xml</configLocation>
+                    <sourceDirectories>${basedir}</sourceDirectories>
+                    <propertyExpansion>suppressionFile=${basedir}/codestyle/suppressions.xml</propertyExpansion>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>10.9.3</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>validate</id>
+                        <phase>validate</phase>
+                        <goals><goal>check</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

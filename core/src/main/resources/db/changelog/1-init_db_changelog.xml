@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="create_table_users" author="a.kopeykin">
+        <createTable tableName="users">
+            <column name="guid" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="email" type="varchar(255)">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="username" type="varchar(255)">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="role" type="varchar(20)"/>
+            <column name="deleted" type="boolean"/>
+            <column name="activated" type="boolean"/>
+            <column name="hash" type="varchar(255)"/>
+            <column name="guid_keycloak" type="uuid"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create_table_password_recoveries" author="a.kopeykin">
+        <createTable tableName="password_recoveries">
+            <column name="guid" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="recovery_secret" type="varchar(255)"/>
+            <column name="user_guid" type="uuid">
+                <constraints referencedTableName="users" referencedColumnNames="guid"
+                             foreignKeyName="fk_users_password_recoveries"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create_table_participants" author="a.kopeykin">
+        <createTable tableName="participants">
+            <column name="guid" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="email" type="varchar(255)">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="full_name" type="varchar(1000)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="balance" type="decimal"/>
+            <column name="user_guid" type="uuid">
+                <constraints referencedTableName="users" referencedColumnNames="guid"
+                             foreignKeyName="fk_participants_users"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create_table_transactions" author="a.kopeykin">
+        <createTable tableName="transactions">
+            <column name="guid" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="at" type="TIMESTAMP WITHOUT TIME ZONE"/>
+            <column name="amount" type="decimal"/>
+            <column name="comment" type="varchar(255)"/>
+            <column name="transaction_type" type="varchar(20)"/>
+            <column name="participant_guid" type="uuid">
+                <constraints referencedTableName="participants" referencedColumnNames="guid"
+                             foreignKeyName="fk_participant_transactions"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create_table_auctions" author="a.kopeykin">
+        <createTable tableName="auctions">
+            <column name="guid" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="number" type="integer">
+                <constraints unique="true"/>
+            </column>
+            <column name="start_date" type="TIMESTAMP WITHOUT TIME ZONE"/>
+            <column name="status" type="varchar(15)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create_table_photos" author="a.kopeykin">
+        <createTable tableName="photos">
+            <column name="guid" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="mime_type" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="path" type="varchar(1000)"/>
+            <column name="entity_type" type="varchar(255)"/>
+            <column name="entity_guid" type="uuid"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create_table_lots" author="v.goncharov">
+        <createTable tableName="lots">
+            <column name="guid" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(1000)"/>
+            <column name="start_price" type="decimal">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price_step" type="decimal">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="deleted" type="boolean"/>
+            <column name="created_at" type="timestamp"/>
+            <column name="owner_guid" type="uuid">
+                <constraints referencedTableName="participants" referencedColumnNames="guid"
+                             foreignKeyName="fk_lot_owner"/>
+            </column>
+            <column name="buyer_guid" type="uuid">
+                <constraints referencedTableName="participants" referencedColumnNames="guid"
+                             foreignKeyName="fk_lot_buyer"/>
+            </column>
+            <column name="lot_status" type="varchar(30)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="create_table_auction_lots" author="a.kopeykin">
+        <createTable tableName="auction_lots">
+            <column name="guid" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="auction_guid" type="uuid">
+                <constraints referencedTableName="auctions" referencedColumnNames="guid"
+                             foreignKeyName="fk_auction"/>
+            </column>
+            <column name="lot_guid" type="uuid">
+                <constraints referencedTableName="lots" referencedColumnNames="guid"
+                             foreignKeyName="fk_lots"/>
+            </column>
+            <column name="lot_number" type="integer"/>
+        </createTable>
+
+        <addUniqueConstraint
+                tableName="auction_lots"
+                columnNames="auction_guid, lot_number"
+                constraintName="uk_auction_guid_lot_guid"/>
+    </changeSet>
+
+    <changeSet id="create_table_auction_participants" author="a.kopeykin">
+        <createTable tableName="auction_participants">
+            <column name="participant_guid" type="uuid">
+                <constraints referencedTableName="participants" referencedColumnNames="guid"
+                             foreignKeyName="fk_participant"/>
+            </column>
+            <column name="auction_guid" type="uuid">
+                <constraints referencedTableName="auctions" referencedColumnNames="guid"
+                             foreignKeyName="fk_lot_auction"/>
+            </column>
+            <column name="participant_number" type="integer"/>
+            <column name="status" type="varchar(10)"/>
+            <column name="created_at" type="timestamp"/>
+        </createTable>
+        
+        <addUniqueConstraint
+                tableName="auction_participants"
+                columnNames="auction_guid, participant_number"
+                constraintName="uk_auction_guid_participant_number"/>
+    </changeSet>
+
+    <changeSet id="create_table_bids" author="a.kopeykin">
+        <createTable tableName="bids">
+            <column name="guid" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="auction_lot_guid" type="uuid">
+                <constraints referencedTableName="auction_lots" referencedColumnNames="guid"
+                             foreignKeyName="fk_auction_lot_bid"/>
+            </column>
+            <column name="buyer_guid" type="uuid">
+                <constraints referencedTableName="participants" referencedColumnNames="guid"
+                             foreignKeyName="fk_participant_bid"/>
+            </column>
+            <column name="amount" type="decimal"/>
+            <column name="bid_number" type="integer"/>
+            <column name="status_bid" type="varchar(10)"/>
+            <column name="start_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
+            <column name="end_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
+        </createTable>
+
+        <addUniqueConstraint
+                tableName="bids"
+                columnNames="auction_lot_guid, bid_number"
+                constraintName="uk_auction_lot_guid_buyer_number"/>
+    </changeSet>
+
+    <!--TODO остальные таблицы и их связи-->
+</databaseChangeLog>
