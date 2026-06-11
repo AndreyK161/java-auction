@@ -49,7 +49,7 @@ export default function UsersPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <h1 className="text-3xl font-bold text-gray-900">Пользователи</h1>
         <button onClick={() => { setShowModal(true); setForm({ fullName: '', email: '', role: 'PARTICIPANT' }); setFormError('') }} className="btn-primary">
           + Добавить пользователя
@@ -66,8 +66,8 @@ export default function UsersPage() {
         />
       </div>
 
-      <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="card overflow-hidden overflow-x-auto">
+        <table className="w-full text-sm min-w-[600px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left font-medium text-gray-700">ФИО</th>

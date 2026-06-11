@@ -58,7 +58,7 @@ export default function AuctionsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Аукционы</h1>
           <p className="text-gray-500 mt-1">Торговая площадка</p>
