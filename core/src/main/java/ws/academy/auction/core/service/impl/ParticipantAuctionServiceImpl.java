@@ -32,6 +32,7 @@ import ws.academy.auction.core.helpers.AuctionLotHelper;
 import ws.academy.auction.core.helpers.ParticipantHelper;
 import ws.academy.auction.core.jpaspecifications.ParticipantAuctionSpecification;
 import ws.academy.auction.core.mapper.ParticipantAuctionMapper;
+import ws.academy.auction.core.repository.AuctionLotRepository;
 import ws.academy.auction.core.repository.AuctionRepository;
 import ws.academy.auction.core.repository.LotRepository;
 import ws.academy.auction.core.repository.ParticipantAuctionRepository;
@@ -57,6 +58,7 @@ public class ParticipantAuctionServiceImpl implements ParticipantAuctionService 
     private final AuctionRepository auctionRepository;
     private final ParticipantRepository participantRepository;
     private final ParticipantAuctionRepository participantAuctionRepository;
+    private final AuctionLotRepository auctionLotRepository;
     private final LotRepository lotRepository;
     private final CurrentUserService currentUserService;
     private final ParticipantAuctionMapper participantAuctionMapper;
@@ -161,10 +163,19 @@ public class ParticipantAuctionServiceImpl implements ParticipantAuctionService 
 
         ParticipantAuctionDetails participantAuctionDetails = participantAuctionMapper.toDetails(participantAuction);
         List<Lot> forSaleLots = lotRepository.findAllByOwnerAndLotStatus(participant, LotStatus.ON_TRADE);
-
         List<LotSummaryRs> forSaleLotsDto = participantEnricher.getForSaleLots(forSaleLots);
-
         participantAuctionDetails.setForSaleLots(forSaleLotsDto);
+
+        List<Lot> availableLots = lotRepository.findAllByOwnerAndLotStatusIn(
+                participant, List.of(LotStatus.NEW, LotStatus.AUCTION_REQUEST));
+        participantAuctionDetails.setAvailableLots(availableLots.stream()
+                .map(lot -> LotSummaryRs.builder()
+                        .guid(lot.getGuid())
+                        .title(lot.getTitle())
+                        .startPrice(lot.getStartPrice())
+                        .build())
+                .toList());
+
         return participantAuctionDetails;
     }
 
@@ -198,7 +209,6 @@ public class ParticipantAuctionServiceImpl implements ParticipantAuctionService 
         List<Lot> lots = lotRepository.findAllByGuidIn(lotGuids);
         lots.forEach(lot -> {
             auctionLotEnricher.buildAuctionLot(auction, lot);
-            lot.setOwner(participant);
             lot.setLotStatus(LotStatus.AUCTION_REQUEST);
         });
 
@@ -227,15 +237,32 @@ public class ParticipantAuctionServiceImpl implements ParticipantAuctionService 
 
     private List<LotGuidRq> getLotGuidRqList(Auction auction, Participant participant) {
         return participant.getLotsOwner().stream()
-                .map(lot -> {
-                    auctionLotHelper.getAuctionLotOrThrow(auction, lot);
-                    return new LotGuidRq(lot.getGuid());
-                })
+                .filter(lot -> auctionLotRepository.findByAuctionAndLot(auction, lot).isPresent())
+                .map(lot -> new LotGuidRq(lot.getGuid()))
                 .toList();
     }
 
     private Specification<ParticipantAuction> getSpecificationBasic(Auction auction) {
         return ParticipantAuctionSpecification.byAuction(auction);
+    }
+
+    @Override
+    public ListParticipantAuctionRs getAllParticipantAuctions(ParticipantAuctionSearchRq request) {
+        int page = request.getPage() != null ? request.getPage() - 1 : 0;
+        int size = request.getCount() != null ? request.getCount() : 30;
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Specification<ParticipantAuction> spec = Specification
+                .where(ParticipantAuctionSpecification.byStatus(ParticipantAuctionStatus.NEW));
+
+        Page<ParticipantAuction> participantAuctionPage = participantAuctionRepository.findAll(spec, pageable);
+
+        List<ParticipantAuctionItem> participantAuctionItems = getParticipantAuctionItems(participantAuctionPage);
+
+        ListPageData pageData = getPageData(size, page, participantAuctionItems.size());
+
+        return new ListParticipantAuctionRs(participantAuctionItems, pageData);
     }
 
     private Specification<ParticipantAuction> getSpecificationWithStatusAndLots(Auction auction) {

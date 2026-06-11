@@ -36,4 +36,10 @@ public class AuctionLotRs {
 
     @Schema(description = "Количество ставок")
     private Integer bidCount = 0;
+
+    @Schema(description = "Статус лота")
+    private String status;
+
+    @Schema(description = "Номер лота в аукционе")
+    private Integer number;
 }

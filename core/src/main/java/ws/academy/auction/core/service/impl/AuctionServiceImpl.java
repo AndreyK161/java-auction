@@ -22,7 +22,10 @@ import ws.academy.auction.core.helpers.LotHelper;
 import ws.academy.auction.core.mapper.AuctionMapper;
 import ws.academy.auction.core.repository.*;
 import ws.academy.auction.core.service.AuctionService;
+import java.math.BigDecimal;
+import ws.academy.auction.core.service.CurrentUserService;
 import ws.academy.auction.core.jpaspecifications.AuctionSpecification;
+import ws.academy.auction.api.dto.rs.users.UserDetails;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -41,6 +44,9 @@ public class AuctionServiceImpl implements AuctionService {
     private final LotRepository lotRepository;
     private final AuctionLotRepository auctionLotRepository;
     private final ParticipantAuctionRepository participantAuctionRepository;
+    private final ParticipantRepository participantRepository;
+    private final BidRepository bidRepository;
+    private final CurrentUserService currentUserService;
     private final AuctionMapper auctionMapper;
 
     @Override
@@ -82,8 +88,30 @@ public class AuctionServiceImpl implements AuctionService {
             return;
         }
         auction.getAuctionLot().forEach(auctionLot -> {
-            auctionLot.getLot().setLotStatus(LotStatus.SOLD);
             auctionLot.getBid().forEach(bid -> bid.setEndAt(LocalDateTime.now()));
+
+            Integer maxNumber = bidRepository.findMaxNumber(auctionLot);
+            if (maxNumber == null) {
+                auctionLot.getLot().setLotStatus(LotStatus.NEW);
+                return;
+            }
+
+            bidRepository.findByBidNumberAndAuctionLot(maxNumber, auctionLot).ifPresent(winningBid -> {
+                Participant buyer = winningBid.getBuyer();
+                Participant seller = auctionLot.getLot().getOwner();
+                BigDecimal price = winningBid.getAmount();
+
+                buyer.setBalance(buyer.getBalance().subtract(price));
+                seller.setBalance(seller.getBalance().add(price));
+
+                participantRepository.save(buyer);
+                participantRepository.save(seller);
+
+                Lot lot = auctionLot.getLot();
+                lot.setBuyer(buyer);
+                lot.setLotStatus(LotStatus.SOLD);
+                lotRepository.save(lot);
+            });
         });
     }
 
@@ -159,9 +187,15 @@ public class AuctionServiceImpl implements AuctionService {
         item.setLotsCount(auctionLotRepository.countByAuctionGuid(auction.getGuid()));
         item.setParticipantCount(participantAuctionRepository.countByAuctionGuid(auction.getGuid()));
         item.setBudget(auctionLotRepository.summaryCostLotsByAuctionGuid(auction.getGuid()));
-        if (auction.getStatus() == AuctionStatus.ACTIVE) {
-            item.setParticipation(true);
-        }
+        try {
+            UserDetails userDetails = currentUserService.showCurrentUser();
+            Participant participant = participantRepository.findByUserGuid(userDetails.getGuid());
+            if (participant != null) {
+                boolean participating = auction.getParticipantAuctionList().stream()
+                        .anyMatch(pa -> pa.getParticipant().getGuid().equals(participant.getGuid()));
+                item.setParticipation(participating);
+            }
+        } catch (Exception ignored) {}
         item.setActions(List.of("DELETE"));
         return item;
     }
@@ -178,8 +212,8 @@ public class AuctionServiceImpl implements AuctionService {
         return Specification
                 .where(AuctionSpecification.hasParticipants(request.getParticipants()))
                 .and(AuctionSpecification.hasStatuses(request.getStatuses()))
-                .and(AuctionSpecification.hasFrom(request.getFrom().atStartOfDay()))
-                .and(AuctionSpecification.hasTo(request.getTo().atTime(LocalTime.MAX)));
+                .and(AuctionSpecification.hasFrom(request.getFrom() != null ? request.getFrom().atStartOfDay() : null))
+                .and(AuctionSpecification.hasTo(request.getTo() != null ? request.getTo().atTime(LocalTime.MAX) : null));
     }
 
     private Pageable getPageable(int page, int size) {

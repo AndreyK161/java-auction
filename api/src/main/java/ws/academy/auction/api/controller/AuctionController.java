@@ -112,6 +112,10 @@ public interface AuctionController {
     @PostMapping("/{guid}/lots/{lotGuid}/for-sale/")
     void setSellerLot(@PathVariable UUID guid, @PathVariable UUID lotGuid);
 
+    @Operation(summary = "Перечень всех заявок на участие (admin)")
+    @GetMapping("/participants/participate-application/")
+    ListParticipantAuctionRs getAllParticipantAuctions(@Valid @ModelAttribute ParticipantAuctionSearchRq request);
+
     @Operation(summary = "Перечень заявок на участие по аукциону")
     @GetMapping("/{guid}/participants/participate-application/")
     ListParticipantAuctionRs getParticipantAuctions(@PathVariable UUID guid,

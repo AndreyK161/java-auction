@@ -14,7 +14,7 @@
             <column name="activated" valueBoolean="true"/>
             <!-- Касаемо guid_keycloak, чтоб добавить admin'а, надо в самом keycloak'е добавить юзера с такими же данными
                        А далее скопировать ID и вставить ниже. В Keycloak выставить username и email такими же-->
-            <column name="guid_keycloak" value="659e037a-fa4b-4539-8d0f-4cb02d55b378"/>
+            <column name="guid_keycloak" value="b5090c38-4635-4b32-bce7-048576c91b48"/>
         </insert>
     </changeSet>
 </databaseChangeLog>

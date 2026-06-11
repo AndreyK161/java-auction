@@ -24,4 +24,7 @@ public class ParticipantAuctionDetails {
 
     @Schema(description = "Список лотов выставленных на продажу")
     private List<LotSummaryRs> forSaleLots;
+
+    @Schema(description = "Лоты участника доступные для добавления в аукцион")
+    private List<LotSummaryRs> availableLots;
 }

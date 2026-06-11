@@ -16,6 +16,7 @@ import ws.academy.auction.core.repository.BidRepository;
 import ws.academy.auction.core.service.AuctionService;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -32,22 +33,29 @@ public class AuctionLotEnricherImpl implements AuctionLotEnricher {
     @Override
     public AuctionLotListItem getAuctionLotListItem(AuctionLot auctionLot) {
         Lot lot = auctionLot.getLot();
-        Bid bid = bidHelper.getBidForMaxBuyerNumber(auctionLot);
-        ParticipantAuction participantAuction = participantAuctionHelper.
-                getParticipantAuctionOrThrow(auctionLot.getAuction(), bid.getBuyer());
+        Integer maxBidNumber = bidRepository.findMaxNumber(auctionLot);
+        Optional<Bid> bidOpt = maxBidNumber != null
+                ? bidRepository.findByBidNumberAndAuctionLot(maxBidNumber, auctionLot)
+                : Optional.empty();
 
         ParticipantDetails participantDetails = participantMapper.buildParticipantDetails(lot.getOwner());
         AuctionRs auctionRs = auctionService.getAuctionWithId(auctionLot.getAuction().getGuid());
 
-        return AuctionLotListItem.builder()
+        AuctionLotListItem.AuctionLotListItemBuilder builder = AuctionLotListItem.builder()
                 .lot(lotEnricher.bindLotWithDetails(lot, participantDetails, auctionRs))
                 .status(lot.getLotStatus().getStatusName())
                 .number(auctionLot.getAuction().getNumber())
                 .winner(participantMapper.buildParticipantDetails(lot.getBuyer()))
-                .lastBid(bidEnricher.buildBidRs(bid, participantAuction))
                 .totalAmount(bidRepository.sumBidsByAuctionLot(auctionLot))
-                .actions(List.of("DELETE"))
-                .build();
+                .actions(List.of("DELETE"));
+
+        bidOpt.ifPresent(bid -> {
+            ParticipantAuction participantAuction = participantAuctionHelper
+                    .getParticipantAuctionOrThrow(auctionLot.getAuction(), bid.getBuyer());
+            builder.lastBid(bidEnricher.buildBidRs(bid, participantAuction));
+        });
+
+        return builder.build();
     }
 
     @Override

@@ -137,6 +137,11 @@ public class AuctionControllerImpl implements AuctionController {
     }
 
     @Override
+    public ListParticipantAuctionRs getAllParticipantAuctions(ParticipantAuctionSearchRq request) {
+        return participantAuctionService.getAllParticipantAuctions(request);
+    }
+
+    @Override
     public ListParticipantAuctionRs getParticipantAuctions(UUID guid, ParticipantAuctionSearchRq request) {
         return participantAuctionService.getParticipantAuctions(guid, request);
     }

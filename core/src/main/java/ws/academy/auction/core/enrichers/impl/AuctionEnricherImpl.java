@@ -16,6 +16,7 @@ import ws.academy.auction.core.repository.BidRepository;
 import ws.academy.auction.core.repository.PhotoRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
@@ -44,10 +45,15 @@ public class AuctionEnricherImpl implements AuctionEnricher {
                 .map(AuctionLot::getLot)
                 .map(lot -> {
                     AuctionLot auctionLot = auctionLotHelper.getAuctionLotOrThrow(auction, lot);
-                    Bid bid = bidHelper.getBidForMaxBuyerNumber(auctionLot);
-                    ParticipantAuction participantAuction = participantAuctionHelper.
-                            getParticipantAuctionOrThrow(auction, bid.getBuyer());
-                    return getAuctionLotRs(lot, bid, participantAuction, auctionLot);
+                    Integer maxBidNumber = bidRepository.findMaxNumber(auctionLot);
+                    Optional<Bid> bidOpt = maxBidNumber != null
+                            ? bidRepository.findByBidNumberAndAuctionLot(maxBidNumber, auctionLot)
+                            : Optional.empty();
+                    return bidOpt.map(bid -> {
+                        ParticipantAuction pa = participantAuctionHelper
+                                .getParticipantAuctionOrThrow(auction, bid.getBuyer());
+                        return getAuctionLotRs(lot, bid, pa, auctionLot);
+                    }).orElseGet(() -> getAuctionLotRsNoBid(lot, auctionLot));
                 })
                 .collect(Collectors.toList());
     }
@@ -61,6 +67,19 @@ public class AuctionEnricherImpl implements AuctionEnricher {
                 .startPrice(lot.getStartPrice())
                 .lastBid(bidEnricher.buildBidRs(bid, participantAuction))
                 .bidCount(bidRepository.countBidsByAuctionLot(auctionLot))
+                .status(lot.getLotStatus().name())
+                .number(auctionLot.getLotNumber())
+                .build();
+    }
+
+    private AuctionLotRs getAuctionLotRsNoBid(Lot lot, AuctionLot auctionLot) {
+        return AuctionLotRs.builder()
+                .guid(lot.getGuid())
+                .title(lot.getTitle())
+                .startPrice(lot.getStartPrice())
+                .bidCount(bidRepository.countBidsByAuctionLot(auctionLot))
+                .status(lot.getLotStatus().name())
+                .number(auctionLot.getLotNumber())
                 .build();
     }
 

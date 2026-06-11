@@ -23,4 +23,7 @@ public class PhotoDetails {
 
     @Schema(description = "Путь до изображения лота")
     private String path;
+
+    @Schema(description = "URL изображения лота")
+    private String url;
 }

@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -34,4 +36,7 @@ public class LotSearchRequest {
 
     @Schema(description = "Фильтр удаленных лотов")
     private String showDeleted = "N";
+
+    @Schema(description = "Фильтр по владельцам лотов")
+    private List<UUID> owner;
 }

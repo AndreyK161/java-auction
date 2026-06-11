@@ -66,6 +66,7 @@ public class LotServiceImpl implements LotService {
 
         Participant owner = participantHelper.getParticipantOrThrow(createLotRq.getOwner().getGuid());
 
+        lot.setOwner(owner);
         Lot savedLot = lotRepository.save(lot);
 
         if (createLotRq.getPhoto() == null) {
@@ -79,8 +80,6 @@ public class LotServiceImpl implements LotService {
         );
 
         setPhotos(photos, savedLot.getGuid());
-
-        lot.setOwner(owner);
 
         ParticipantDetails participant = participantEnricher.toParticipantDto(owner);
 
@@ -209,6 +208,7 @@ public class LotServiceImpl implements LotService {
                 .where(LotSpecification.hasName(request.getName()))
                 .and(LotSpecification.priceGreaterThanOrEqualTo(request.getPriceFrom()))
                 .and(LotSpecification.priceLessThanOrEqualTo(request.getPriceTo()))
-                .and(LotSpecification.isDeleted(deleted));
+                .and(LotSpecification.isDeleted(deleted))
+                .and(LotSpecification.hasOwnerGuids(request.getOwner()));
     }
 }

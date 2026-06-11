@@ -43,6 +43,8 @@ public interface LotRepository extends JpaRepository<Lot, UUID>, JpaSpecificatio
      */
     List<Lot> findAllByOwnerAndLotStatus(Participant owner, LotStatus status);
 
+    List<Lot> findAllByOwnerAndLotStatusIn(Participant owner, List<LotStatus> statuses);
+
     /**
      * Получение списка сущностей Lot с указанными покупателями
      *

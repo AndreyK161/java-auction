@@ -89,7 +89,8 @@ public class KeycloakServiceImpl implements KeycloakService {
 
     private UserRepresentation createUserRepresentation(String username, String email) {
         UserRepresentation user = new UserRepresentation();
-        user.setUsername(username);
+        user.setUsername(email);
+        user.setFirstName(username);
         user.setEmail(email);
         user.setEnabled(true);
         user.setEmailVerified(true);

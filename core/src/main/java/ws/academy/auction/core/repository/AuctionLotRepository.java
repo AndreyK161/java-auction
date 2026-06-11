@@ -51,7 +51,7 @@ public interface AuctionLotRepository extends JpaRepository<AuctionLot, UUID>, J
      * @return Сумма бюджета складываемая из начальной суммы лотов
      */
     @Query("select sum(al.lot.startPrice) from AuctionLot al where al.auction.guid = :auctionGuid")
-    long summaryCostLotsByAuctionGuid(@Param("auctionGuid") UUID auctionGuid);
+    Long summaryCostLotsByAuctionGuid(@Param("auctionGuid") UUID auctionGuid);
 
     /**
      * Получение максимального порядково числа лотов при помощи аукциона

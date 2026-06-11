@@ -19,6 +19,7 @@ import ws.academy.auction.core.helpers.LotHelper;
 import ws.academy.auction.core.helpers.ParticipantHelper;
 import ws.academy.auction.core.producer.BidEventProducer;
 import ws.academy.auction.core.repository.BidRepository;
+import ws.academy.auction.core.repository.ParticipantAuctionRepository;
 import ws.academy.auction.core.service.BidService;
 import ws.academy.auction.core.messages.BidResultGateway;
 
@@ -44,6 +45,7 @@ public class BidServiceImpl implements BidService {
     private final BidEventProducer bidEventProducer;
     private final BidResultGateway bidResultGateway;
     private final BidEnricher bidEnricher;
+    private final ParticipantAuctionRepository participantAuctionRepository;
 
     @Override
     public CreateBidRs addLotBid(UUID auctionId, UUID lotId, CreateBidRq request) {
@@ -51,6 +53,12 @@ public class BidServiceImpl implements BidService {
             Lot lot = lotHelper.getLotOrThrow(lotId);
             Auction auction = auctionHelper.getAuctionOrThrow(auctionId);
             AuctionLot auctionLot = auctionLotHelper.getAuctionLotOrThrow(auction, lot);
+
+            if (request.getParticipantNumber() == null && request.getParticipant() != null) {
+                Participant participant = participantHelper.getParticipantOrThrow(request.getParticipant().getGuid());
+                participantAuctionRepository.findAuctionParticipantByAuctionAndParticipant(auction, participant)
+                        .ifPresent(pa -> request.setParticipantNumber(pa.getParticipantNumber()));
+            }
 
             validateBid(request, getMinimumAllowed(auctionLot));
 

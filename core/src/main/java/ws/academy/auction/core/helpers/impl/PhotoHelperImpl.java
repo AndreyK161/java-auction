@@ -8,6 +8,7 @@ import ws.academy.auction.core.entity.Photo;
 import ws.academy.auction.core.helpers.PhotoHelper;
 import ws.academy.auction.core.mapper.PhotoMapper;
 import ws.academy.auction.core.repository.PhotoRepository;
+import ws.academy.auction.core.service.FileStorageService;
 
 import java.util.List;
 
@@ -16,12 +17,19 @@ import java.util.List;
 public class PhotoHelperImpl implements PhotoHelper {
     private final PhotoRepository photoRepository;
     private final PhotoMapper photoMapper;
+    private final FileStorageService fileStorageService;
 
     @Override
     public List<PhotoDetails> getPhotoDetailsList(Lot lot) {
         List<Photo> photos = photoRepository.findAllByEntityTypeAndEntityGuid("LOT", lot.getGuid());
         return photos.stream()
-                .map(photoMapper::buildPhotoDetails)
+                .map(photo -> {
+                    PhotoDetails details = photoMapper.buildPhotoDetails(photo);
+                    if (photo.getPath() != null) {
+                        details.setUrl(fileStorageService.generatePresignedUrl(photo.getPath().replaceFirst("^/", "")));
+                    }
+                    return details;
+                })
                 .toList();
     }
 }

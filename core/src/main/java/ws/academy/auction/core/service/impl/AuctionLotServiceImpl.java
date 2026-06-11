@@ -72,8 +72,12 @@ public class AuctionLotServiceImpl implements AuctionLotService {
     public void addAuctionLot(UUID guid, LotGuidRq lotGuid) {
         Auction auction = auctionHelper.getAuctionOrThrow(guid);
         Lot lot = lotHelper.getLotOrThrow(lotGuid.getLot());
-        AuctionLot auctionLot = auctionLotEnricher.buildAuctionLot(auction, lot);
 
+        if (auctionLotRepository.findByAuctionAndLot(auction, lot).isPresent()) {
+            return;
+        }
+
+        AuctionLot auctionLot = auctionLotEnricher.buildAuctionLot(auction, lot);
         auctionLot.setLotNumber(Optional.ofNullable(auctionLotRepository.findMaxNumber(auction)).orElse(0) + 1);
         lot.setLotStatus(LotStatus.AUCTION_REQUEST);
 

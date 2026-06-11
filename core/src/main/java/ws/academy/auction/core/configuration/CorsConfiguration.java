@@ -13,13 +13,16 @@ public class CorsConfiguration {
     @Value("${SWAGGER_URL}")
     private String swaggerUrl;
 
+    @Value("${FRONTEND_URL:http://localhost:5173}")
+    private String frontendUrl;
+
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(@NotNull CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOrigins(swaggerUrl)
+                        .allowedOrigins(swaggerUrl, frontendUrl)
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("Content-Type", "Authorization");
             }

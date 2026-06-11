@@ -72,4 +72,6 @@ public interface ParticipantAuctionService {
      * @return ListParticipantAuctionRs список объектов - список объектов-dto сущности ParticipantAuctions
      */
     ListParticipantAuctionRs getParticipantAuctions(UUID guid, ParticipantAuctionSearchRq request);
+
+    ListParticipantAuctionRs getAllParticipantAuctions(ParticipantAuctionSearchRq request);
 }
