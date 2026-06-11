@@ -23,6 +23,8 @@ import ws.academy.auction.core.mapper.AuctionMapper;
 import ws.academy.auction.core.repository.*;
 import ws.academy.auction.core.service.AuctionService;
 import java.math.BigDecimal;
+import ws.academy.auction.core.entity.Transaction;
+import ws.academy.auction.core.enums.TransactionType;
 import ws.academy.auction.core.service.CurrentUserService;
 import ws.academy.auction.core.jpaspecifications.AuctionSpecification;
 import ws.academy.auction.api.dto.rs.users.UserDetails;
@@ -46,6 +48,7 @@ public class AuctionServiceImpl implements AuctionService {
     private final ParticipantAuctionRepository participantAuctionRepository;
     private final ParticipantRepository participantRepository;
     private final BidRepository bidRepository;
+    private final TransactionRepository transactionRepository;
     private final CurrentUserService currentUserService;
     private final AuctionMapper auctionMapper;
 
@@ -100,6 +103,7 @@ public class AuctionServiceImpl implements AuctionService {
                 Participant buyer = winningBid.getBuyer();
                 Participant seller = auctionLot.getLot().getOwner();
                 BigDecimal price = winningBid.getAmount();
+                String lotTitle = auctionLot.getLot().getTitle();
 
                 buyer.setBalance(buyer.getBalance().subtract(price));
                 seller.setBalance(seller.getBalance().add(price));
@@ -111,6 +115,22 @@ public class AuctionServiceImpl implements AuctionService {
                 lot.setBuyer(buyer);
                 lot.setLotStatus(LotStatus.SOLD);
                 lotRepository.save(lot);
+
+                transactionRepository.save(Transaction.builder()
+                        .at(LocalDateTime.now())
+                        .amount(price.negate())
+                        .type(TransactionType.PURCHASE)
+                        .comment("Покупка лота: " + lotTitle)
+                        .participant(buyer)
+                        .build());
+
+                transactionRepository.save(Transaction.builder()
+                        .at(LocalDateTime.now())
+                        .amount(price)
+                        .type(TransactionType.SALE)
+                        .comment("Продажа лота: " + lotTitle)
+                        .participant(seller)
+                        .build());
             });
         });
     }

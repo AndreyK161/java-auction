@@ -34,8 +34,9 @@ public class TransactionServiceImpl implements TransactionService {
 
         Pageable pageable = getPageable(page, size);
 
-        Specification<Transaction> spec = getSpecification(guid, request.getDateFrom().atStartOfDay(),
-                request.getDateTo().atTime(LocalTime.MAX));
+        Specification<Transaction> spec = getSpecification(guid,
+                request.getDateFrom() != null ? request.getDateFrom().atStartOfDay() : null,
+                request.getDateTo() != null ? request.getDateTo().atTime(LocalTime.MAX) : null);
 
         Page<Transaction> transactionPage = transactionRepository.findAll(spec, pageable);
 

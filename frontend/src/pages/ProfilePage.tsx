@@ -168,8 +168,8 @@ export default function ProfilePage() {
                     <p className="text-sm font-medium text-gray-900">{tx.comment || (tx.type === 'DEPOSIT' ? 'Пополнение' : 'Вывод')}</p>
                     <p className="text-xs text-gray-400">{tx.datetime}</p>
                   </div>
-                  <p className={`font-semibold ${tx.type === 'DEPOSIT' ? 'text-green-600' : 'text-red-600'}`}>
-                    {tx.type === 'DEPOSIT' ? '+' : '-'}{formatMoney(Math.abs(tx.amount))}
+                  <p className={`font-semibold ${tx.type === 'DEPOSIT' || tx.type === 'SALE' ? 'text-green-600' : 'text-red-600'}`}>
+                    {tx.type === 'DEPOSIT' || tx.type === 'SALE' ? '+' : '-'}{formatMoney(Math.abs(tx.amount))}
                   </p>
                 </div>
               ))}
@@ -181,18 +181,18 @@ export default function ProfilePage() {
 
       {tab === 'purchases' && (
         <div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {purchasesData?.items?.map((item: BoughtLotListItem) => (
-              <div key={item.guid} className="card overflow-hidden flex">
+              <div key={item.guid} className="card overflow-hidden">
                 {item.photo?.[0]?.url ? (
-                  <img src={`http://localhost:8080${item.photo[0].url}`} alt={item.title} className="w-24 h-24 object-cover flex-shrink-0" />
+                  <img src={item.photo[0].url} alt={item.title} className="w-full h-48 object-cover" />
                 ) : (
-                  <div className="w-24 h-24 bg-gray-100 flex items-center justify-center text-2xl flex-shrink-0">📦</div>
+                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-5xl">📦</div>
                 )}
-                <div className="p-3">
-                  <h3 className="font-medium text-gray-900 mb-1">{item.title}</h3>
-                  <p className="text-xs text-gray-400">{item.purchaseInfo?.date}</p>
-                  <p className="text-sm font-bold text-green-600 mt-1">{formatMoney(item.purchaseInfo?.cost)}</p>
+                <div className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
+                  <p className="text-xs text-gray-400 mb-1">{item.purchaseInfo?.date}</p>
+                  <p className="text-lg font-bold text-green-600">{formatMoney(item.purchaseInfo?.cost)}</p>
                 </div>
               </div>
             ))}
