@@ -34,4 +34,7 @@ public class LotListItem {
 
     @Schema(description = "Список идентификаторов фотографий лота")
     private List<PhotoDetails> photos;
+
+    @Schema(description = "Статус лота")
+    private String tradeStatus;
 }

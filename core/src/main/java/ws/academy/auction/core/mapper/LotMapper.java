@@ -51,6 +51,7 @@ public interface LotMapper {
      * @return LotListItem объект - dto-объект сущности Lot
      */
     @Mapping(target = "photos", ignore = true)
+    @Mapping(target = "tradeStatus", ignore = true)
     LotListItem toLotListItem(Lot lot);
 
     /**

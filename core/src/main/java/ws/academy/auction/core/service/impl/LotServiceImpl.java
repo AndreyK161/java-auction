@@ -193,6 +193,7 @@ public class LotServiceImpl implements LotService {
                     LotListItem item = lotMapper.toLotListItem(lot);
                     item.setPhotos(photoHelper.getPhotoDetailsList(lot));
                     item.setCreatedAt(lot.getCreatedAt());
+                    item.setTradeStatus(lot.getLotStatus().name());
                     return item;
                 })
                 .toList();
